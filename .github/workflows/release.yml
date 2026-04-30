@@ -260,6 +260,7 @@ jobs:
     if: needs.pack.outputs.hasPackages == 'true'
     timeout-minutes: 5
     runs-on: ubuntu-latest
+    permissions: {} # Slack webhook only, no GitHub API calls
     steps:
       - name: Notify pre-deploy
         continue-on-error: true
@@ -306,7 +307,7 @@ jobs:
 
   publish:
     name: Publish packages
-    needs: [review, notify-deploy]
+    needs: [pack, review, notify-deploy]
     if: needs.pack.outputs.hasPackages == 'true'
     timeout-minutes: 60
     runs-on: ubuntu-latest
