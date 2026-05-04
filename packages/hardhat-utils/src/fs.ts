@@ -21,8 +21,8 @@ import {
   DirectoryNotEmptyError,
 } from "./errors/fs.js";
 import {
-  isDirectoryDirentAware,
-  readdirWithFileTypesOrEmpty,
+  collectAllDirectoriesMatching,
+  collectAllFilesMatching,
 } from "./internal/fs.js";
 
 const AMBIGUOUS_CASING_DIR_ENTRY = Symbol("ambiguous");
@@ -316,38 +316,6 @@ export async function getAllFilesMatching(
   return results;
 }
 
-async function collectAllFilesMatching(
-  dirFrom: string,
-  results: string[],
-  matches?: (absolutePathToFile: string) => Promise<boolean> | boolean,
-  directoryFilter?: (absolutePathToDir: string) => Promise<boolean> | boolean,
-): Promise<void> {
-  const dirContent = await readdirWithFileTypesOrEmpty(dirFrom);
-
-  await Promise.all(
-    dirContent.map(async (dirent) => {
-      const absolutePathToFile = path.join(dirFrom, dirent.name);
-      if (await isDirectoryDirentAware(absolutePathToFile, dirent)) {
-        if (
-          directoryFilter === undefined ||
-          (await directoryFilter(absolutePathToFile))
-        ) {
-          await collectAllFilesMatching(
-            absolutePathToFile,
-            results,
-            matches,
-            directoryFilter,
-          );
-        }
-
-        return;
-      } else if (matches === undefined || (await matches(absolutePathToFile))) {
-        results.push(absolutePathToFile);
-      }
-    }),
-  );
-}
-
 /**
  * Recursively searches a directory and its subdirectories for directories that
  * satisfy the specified condition, returning their absolute paths. Once a
@@ -371,30 +339,6 @@ export async function getAllDirectoriesMatching(
   await collectAllDirectoriesMatching(dirFrom, results, matches);
 
   return results;
-}
-
-async function collectAllDirectoriesMatching(
-  dirFrom: string,
-  results: string[],
-  matches?: (absolutePathToDir: string) => Promise<boolean> | boolean,
-): Promise<void> {
-  const dirContent = await readdirWithFileTypesOrEmpty(dirFrom);
-
-  await Promise.all(
-    dirContent.map(async (dirent) => {
-      const absolutePathToFile = path.join(dirFrom, dirent.name);
-      if (!(await isDirectoryDirentAware(absolutePathToFile, dirent))) {
-        return;
-      }
-
-      if (matches === undefined || (await matches(absolutePathToFile))) {
-        results.push(absolutePathToFile);
-        return;
-      }
-
-      await collectAllDirectoriesMatching(absolutePathToFile, results, matches);
-    }),
-  );
 }
 
 /**
