@@ -29,6 +29,12 @@ export interface LibraryAddresses {
   [contractName: string]: PrefixedHexString;
 }
 
+export interface BytecodeReplacement {
+  start: number;
+  length: number;
+  value: string;
+}
+
 interface LibraryLinksIndex {
   byName: Map<string, LibraryLink[]>;
   byFqn: Map<string, LibraryLink>;
@@ -151,4 +157,32 @@ export function checkMissingLibraryAddresses(
   }
 
   throw new MissingLibrariesError(missingLibraries);
+}
+
+/**
+ * Apply a set of replacements to a bytecode string, returning the resulting
+ * bytecode. Each replacement overwrites `length` characters starting at
+ * `start` with `value`. Replacements must not overlap.
+ */
+export function applyBytecodeReplacements(
+  bytecode: string,
+  replacements: BytecodeReplacement[],
+): string {
+  if (replacements.length === 0) {
+    return bytecode;
+  }
+
+  replacements.sort((a, b) => a.start - b.start);
+
+  const parts: string[] = [];
+  let position = 0;
+
+  for (const { start, length, value } of replacements) {
+    parts.push(bytecode.slice(position, start), value);
+    position = start + length;
+  }
+
+  parts.push(bytecode.slice(position));
+
+  return parts.join("");
 }

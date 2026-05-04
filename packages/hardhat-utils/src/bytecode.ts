@@ -1,23 +1,19 @@
 import type { PrefixedHexString } from "./hex.js";
 import type {
   Artifact,
+  BytecodeReplacement,
   LibraryAddresses,
   LibraryLink,
 } from "./internal/bytecode.js";
 
 import { getPrefixedHexString, getUnprefixedHexString } from "./hex.js";
 import {
+  applyBytecodeReplacements,
   checkAmbiguousOrUnnecessaryLinks,
   checkMissingLibraryAddresses,
   checkOverlappingLibraryNames,
   checkProvidedLibraryAddresses,
 } from "./internal/bytecode.js";
-
-interface BytecodeReplacement {
-  start: number;
-  length: number;
-  value: string;
-}
 
 /**
  * Resolves the linked bytecode for a given contract artifact by substituting
@@ -100,27 +96,4 @@ export function linkBytecode(
   return getPrefixedHexString(
     applyBytecodeReplacements(bytecode, replacements),
   );
-}
-
-function applyBytecodeReplacements(
-  bytecode: string,
-  replacements: BytecodeReplacement[],
-): string {
-  if (replacements.length === 0) {
-    return bytecode;
-  }
-
-  replacements.sort((a, b) => a.start - b.start);
-
-  const parts: string[] = [];
-  let position = 0;
-
-  for (const { start, length, value } of replacements) {
-    parts.push(bytecode.slice(position, start), value);
-    position = start + length;
-  }
-
-  parts.push(bytecode.slice(position));
-
-  return parts.join("");
 }
