@@ -111,11 +111,12 @@ export class AdjacencyList {
     );
 
     while (s.size !== 0) {
-      const n = [...s].pop();
-      s.delete(n!);
-      l.push(n!);
-      for (const m of newList.getDependenciesFor(n!)) {
-        newList.deleteDependency({ from: n!, to: m });
+      const n = s.values().next().value;
+      assertIgnitionInvariant(n !== undefined, "Set is non-empty");
+      s.delete(n);
+      l.push(n);
+      for (const m of newList.getDependenciesFor(n)) {
+        newList.deleteDependency({ from: n, to: m });
 
         if (newList.getDependentsFor(m).length === 0) {
           s.add(m);
