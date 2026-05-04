@@ -448,6 +448,8 @@ export class HardhatHelpers {
     return this.#linkBytecode(artifact, [...linksToApply.values()]);
   }
 
+  // `libraries` is assumed to contain no duplicate (sourceName, libraryName)
+  // entries. Duplicates would result in malformed bytecode.
   #linkBytecode(artifact: Artifact, libraries: Link[]): string {
     const replacements: Array<{
       start: number;
