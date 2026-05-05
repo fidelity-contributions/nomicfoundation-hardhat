@@ -20,7 +20,6 @@ import {
   readUtf8File,
   remove,
 } from "@nomicfoundation/hardhat-utils/fs";
-import chalk from "chalk";
 
 import { createHardhatRuntimeEnvironment } from "../../../../src/hre.js";
 import { CoverageManagerImplementation } from "../../../../src/internal/builtin-plugins/coverage/coverage-manager.js";
@@ -141,10 +140,7 @@ describe("CoverageManagerImplementation", () => {
     const allData = coverageManager.data;
 
     for (const item of [...data1, ...data2]) {
-      assert.ok(
-        allData.includes(item),
-        `The loaded data should include ${item}`,
-      );
+      assert.ok(allData.has(item), `The loaded data should include ${item}`);
     }
   });
 
@@ -182,11 +178,33 @@ describe("CoverageManagerImplementation", () => {
     const allData = coverageManager.data;
 
     for (const item of [...data1]) {
-      assert.ok(
-        allData.includes(item),
-        `The loaded data should include ${item}`,
-      );
+      assert.ok(allData.has(item), `The loaded data should include ${item}`);
     }
+  });
+
+  it("should aggregate repeated tags as counts", async () => {
+    await coverageManager.addData(["a", "b", "a", "a", "b"]);
+
+    assert.equal(coverageManager.data.get("a"), 3);
+    assert.equal(coverageManager.data.get("b"), 2);
+    assert.equal(coverageManager.data.size, 2);
+  });
+
+  it("should sum counts across saved shards on load", async () => {
+    const cm1 = new CoverageManagerImplementation(process.cwd());
+    const cm2 = new CoverageManagerImplementation(process.cwd());
+
+    await cm1.addData(["a", "a", "b"]);
+    await cm1.saveData(id);
+
+    await cm2.addData(["a", "c"]);
+    await cm2.saveData(id);
+
+    await coverageManager.loadData(id);
+
+    assert.equal(coverageManager.data.get("a"), 3);
+    assert.equal(coverageManager.data.get("b"), 1);
+    assert.equal(coverageManager.data.get("c"), 1);
   });
 
   it("should store all the metadata", async () => {
@@ -236,13 +254,13 @@ describe("CoverageManagerImplementation", () => {
 
     let allData = coverageManager.data;
 
-    assert.ok(allData.length !== 0, "The data should be saved to memory");
+    assert.ok(allData.size !== 0, "The data should be saved to memory");
 
     await coverageManager.clearData(id);
 
     allData = coverageManager.data;
 
-    assert.ok(allData.length === 0, "The data should be cleared from memory");
+    assert.ok(allData.size === 0, "The data should be cleared from memory");
   });
 
   it("should clear the data from disk", async () => {
@@ -302,8 +320,8 @@ describe("CoverageManagerImplementation", () => {
   });
 
   it("should format the markdown report", async () => {
-    const originalChalkLevel = chalk.level;
-    chalk.level = 0;
+    const originalNoColor = process.env.NO_COLOR;
+    process.env.NO_COLOR = "1";
 
     try {
       const actual = coverageManager.formatMarkdownReport(report);
@@ -327,7 +345,11 @@ describe("CoverageManagerImplementation", () => {
         ].join("\n"),
       );
     } finally {
-      chalk.level = originalChalkLevel;
+      if (originalNoColor === undefined) {
+        delete process.env.NO_COLOR;
+      } else {
+        process.env.NO_COLOR = originalNoColor;
+      }
     }
   });
 
