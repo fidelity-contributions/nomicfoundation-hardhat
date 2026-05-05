@@ -19,8 +19,8 @@ import {
   DirectoryNotEmptyError,
 } from "./errors/fs.js";
 import {
-  isDirectoryDirentAware,
-  readdirWithFileTypesOrEmpty,
+  collectAllDirectoriesMatching,
+  collectAllFilesMatching,
 } from "./internal/fs.js";
 
 // We don't load @streamparser/json-node on startup because it's only
@@ -316,33 +316,10 @@ export async function getAllFilesMatching(
   matches?: (absolutePathToFile: string) => Promise<boolean> | boolean,
   directoryFilter?: (absolutePathToDir: string) => Promise<boolean> | boolean,
 ): Promise<string[]> {
-  const dirContent = await readdirWithFileTypesOrEmpty(dirFrom);
+  const results: string[] = [];
+  await collectAllFilesMatching(dirFrom, results, matches, directoryFilter);
 
-  const results = await Promise.all(
-    dirContent.map(async (dirent) => {
-      const absolutePathToFile = path.join(dirFrom, dirent.name);
-      if (await isDirectoryDirentAware(absolutePathToFile, dirent)) {
-        if (
-          directoryFilter === undefined ||
-          (await directoryFilter(absolutePathToFile))
-        ) {
-          return await getAllFilesMatching(
-            absolutePathToFile,
-            matches,
-            directoryFilter,
-          );
-        }
-
-        return [];
-      } else if (matches === undefined || (await matches(absolutePathToFile))) {
-        return absolutePathToFile;
-      } else {
-        return [];
-      }
-    }),
-  );
-
-  return results.flat();
+  return results;
 }
 
 /**
@@ -364,24 +341,10 @@ export async function getAllDirectoriesMatching(
   dirFrom: string,
   matches?: (absolutePathToDir: string) => Promise<boolean> | boolean,
 ): Promise<string[]> {
-  const dirContent = await readdirWithFileTypesOrEmpty(dirFrom);
+  const results: string[] = [];
+  await collectAllDirectoriesMatching(dirFrom, results, matches);
 
-  const results = await Promise.all(
-    dirContent.map(async (dirent) => {
-      const absolutePathToFile = path.join(dirFrom, dirent.name);
-      if (!(await isDirectoryDirentAware(absolutePathToFile, dirent))) {
-        return [];
-      }
-
-      if (matches === undefined || (await matches(absolutePathToFile))) {
-        return absolutePathToFile;
-      }
-
-      return await getAllDirectoriesMatching(absolutePathToFile, matches);
-    }),
-  );
-
-  return results.flat();
+  return results;
 }
 
 /**
