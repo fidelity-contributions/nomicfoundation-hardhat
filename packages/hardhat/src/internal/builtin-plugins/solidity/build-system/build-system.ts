@@ -1103,7 +1103,7 @@ export class SolidityBuildSystemImplementation implements SolidityBuildSystem {
     // source files that compile but produce no contracts emit only the
     // declaration file, but their parent dir still belongs in the cleanup
     // candidate set.
-    // TODO: This logic is duplicated with respect to the artifacts manager
+    // TODO: This logic is originated with the artifacts manager, but now uses both json files and `artifacts.d.ts` as the test
     const allArtifactFiles = await getAllFilesMatching(
       artifactsDirectory,
       (p) => {
