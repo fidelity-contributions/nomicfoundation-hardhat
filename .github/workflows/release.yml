@@ -327,7 +327,8 @@ jobs:
               echo "::warning::Approvals API returned no approver; falling back to github.actor=${GITHUB_ACTOR}"
             fi
           else
-            echo "::warning::Approvals API call failed: $(<"$err"); falling back to github.actor=${GITHUB_ACTOR}"
+            echo "::warning::Approvals API call failed (see step log); falling back to github.actor=${GITHUB_ACTOR}"
+            cat "$err" >&2
             approver=
           fi
           echo "login=${approver:-$GITHUB_ACTOR}" >> "$GITHUB_OUTPUT"
